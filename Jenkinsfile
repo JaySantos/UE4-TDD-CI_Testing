@@ -2,13 +2,13 @@ pipeline {
   agent {
     node {
       label 'master'
-      customWorkspace "D:\\CITestingWorkspace"//use backward slashes to avoid problems with how Windows uses directories!!
+      customWorkspace "C:\\Unreal\\Workspace"//use backward slashes to avoid problems with how Windows uses directories!!
     }
   }//^all this is necessary to run the build in a special workspace.
   environment {
-    ue4Path = "C:\\Program Files\\Epic Games\\UE_4.25"
-    ue4Project = "CITesting"
-    ueProjectFileName = "${ue4Project}.uproject"
+    ue5Path = "C:\\Program Files\\Epic Games\\UE_5.1"
+    ue5Project = "CITesting"
+    ueProjectFileName = "${ue5Project}.uproject"
     testSuiteToRun = "Game."//the '.' is used to run all tests inside the prettyname. The automation system searches for everything that has 'Game.' in it, so otherGame.'s tests would run too...
     testReportFolder = "TestsReport"
     testsLogName = "RunTests.log"
@@ -19,12 +19,8 @@ pipeline {
     stage('Building') {
       steps {
         echo 'Build Stage Started.'
-        echo 'sending notification to Slack.'
-        slackSend channel: '#testing-ci', 
-          color: '#4A90E2',
-          message: "Build ${env.BUILD_NUMBER} has started at node ${env.NODE_NAME}..."
 
-        bat "BuildWithoutCooking.bat \"${ue4Path}\" \"${env.WORKSPACE}\" \"${ueProjectFilename}\""//builds our project
+        bat "BuildWithoutCooking.bat \"${ue5Path}\" \"${env.WORKSPACE}\" \"${ueProjectFilename}\""//builds our project
       }
       post {
         success {
@@ -40,7 +36,7 @@ pipeline {
       steps {
         echo 'Testing Stage Started.'
 
-        bat "TestRunnerAndCodeCoverage.bat \"${ue4Path}\" \"${env.WORKSPACE}\" \"${ueProjectFilename}\" \"${testSuiteToRun}\" \"${testReportFolder}\" \"${testsLogName}\" \"${codeCoverageReportName}\""//runs the tests
+        bat "TestRunnerAndCodeCoverage.bat \"${ue5Path}\" \"${env.WORKSPACE}\" \"${ueProjectFilename}\" \"${testSuiteToRun}\" \"${testReportFolder}\" \"${testsLogName}\" \"${codeCoverageReportName}\""//runs the tests
       }
       post {
         success {
@@ -76,27 +72,21 @@ pipeline {
       echo '-checking clean workspace.'
       powershell label: 'show workspace', script: 'dir $WORKSPACE'
 
-      echo 'Sending build status notification to Slack:'
+      echo 'Result:'
     }
     success{
-        slackSend channel: '#testing-ci',
-          color: 'good', 
-          message: "*${currentBuild.currentResult}:* Build ${env.BUILD_NUMBER} has *succeded!* :innocent:"
+        echo '!!! SUCCESS !!!'
     }
     unstable{
-        slackSend channel: '#testing-ci',
-          color: '#E2A52E', 
-          message: "*${currentBuild.currentResult}:* Build ${env.BUILD_NUMBER} it's *unstable!* :grimacing:"
+        echo '!!! UNSTABLE !!!'
     }
     failure{
-        slackSend channel: '#testing-ci',
-          color: 'danger', 
-          message: "*${currentBuild.currentResult}:* Build ${env.BUILD_NUMBER} has *failed* :astonished:"
+        echo '!!! FAILURE !!!'
     }
   }
 }
 
-import groovy.json.JsonSlurper
+/*import groovy.json.JsonSlurper
 import groovy.xml.MarkupBuilder
 
 def testReportSummary = 'to be populated...'
@@ -143,4 +133,4 @@ def transformReport( String jsonContent ) {
     } 
 
     return jUnitReport.toString()
-}
+}*/
